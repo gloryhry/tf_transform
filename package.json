@@ -1,0 +1,19 @@
+{
+  "name": "tf-translate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Robot / Camera 外参转换与双平台边缘函数",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "test": "node --test",
+    "check": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

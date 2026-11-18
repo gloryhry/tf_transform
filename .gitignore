@@ -1,0 +1,25 @@
+# 依赖、构建工具缓存和本地日志
+node_modules/
+.wrangler/
+.cache/
+coverage/
+npm-debug.log*
+
+# 本地账号配置和环境变量
+/.agents/
+/.aws/
+/.codex/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# 本地验证与交付压缩包；dist/ 保留在仓库中供直接部署
+/test/
+/docs/verification.md
+/tf-translate.zip
+
+.DS_Store
+Thumbs.db

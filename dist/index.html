@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f3">
+  <meta name="description" content="逐次叠加 Robot 与 Camera 外参增量，转换矩阵、四元数、欧拉角及 TUM，查看三维坐标关系。">
+  <title>TF Translate · 坐标变换工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231b7865'/%3E%3Cpath d='M9 11h22M20 11v21M12 22h16' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+  <style>:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px; font-synthesis: none; color: #293d33; background: #f4f6f3;
+  --accent: #23765b; --line: #dfe6dc; --muted: #819080;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 12px; }
+body { margin: 0; }
+button, select, textarea { font: inherit; }
+button, select, summary { cursor: pointer; }
+button { color: inherit; }
+button:disabled { cursor: not-allowed; opacity: .4; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid #409879; outline-offset: 2px; }
+.icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.icon-library, .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.masthead { height: 44px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); background: #fafcf8; }
+.brand-heading, .brand, .masthead-right { display: flex; align-items: center; }
+.brand-heading { gap: 14px; }
+.brand { gap: 8px; font: 12px var(--mono); color: #486b55; }
+.brand-mark { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 6px; background: #26775e; color: #fff; font: bold 21px Georgia, serif; letter-spacing: -2px; padding-right: 2px; }
+h1 { font-size: 13px; font-weight: 550; margin: 0; padding-left: 14px; border-left: 1px solid #dce5d8; }
+.masthead-right { gap: 18px; font-size: 11px; color: #7a8e78; }
+.masthead-right a:hover { color: var(--accent); }
+.local-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.local-badge i { width: 5px; height: 5px; background: #4a9871; border-radius: 50%; }
+.page { max-width: 1840px; margin: 0 auto; padding: 10px 14px 6px; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 310px; grid-template-areas: "input viewer" "results viewer"; align-items: start; gap: 10px 12px; }
+.panel { border: 1px solid var(--line); border-radius: 8px; background: #fff; min-width: 0; overflow: hidden; }
+.input-panel { grid-area: input; }
+h2 { margin: 0; display: flex; gap: 9px; align-items: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.panel-heading { min-height: 35px; padding: 5px 10px; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid #edf0e9; }
+.input-workflow { margin-left: auto; color: #667c65; font-size: 11px; }
+select { color: #46614a; border: 1px solid #dce4d7; border-radius: 4px; background: #f9fbf7; font: 11px var(--mono); }
+.formula { font: 10px/1.5 var(--mono); color: #8a9783; white-space: nowrap; }
+.input-body { padding: 9px 10px; }
+.format-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 6px; }
+.format-button { position: relative; border: 1px solid #e0e6da; border-radius: 4px; min-height: 28px; background: #fafcf8; padding: 4px; font: 10px/1.4 var(--mono); white-space: nowrap; }
+.format-button:hover { border-color: #92b49b; background: #f0f6eb; }
+.format-button:active { background: #e8f3e8; border-color: #5c9c74; color: #25643f; }
+.field-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-size: 10px; }
+.field-heading label { font-weight: 550; flex-shrink: 0; }
+.count-badge { margin-left: auto; font: 10px var(--mono); color: #5c8960; white-space: nowrap; }
+.count-badge.invalid { color: #b05c49; }
+.input-shell { border: 1px solid #dce4d4; border-radius: 5px; background: #f8faf5; overflow: hidden; }
+.input-shell:focus-within { border-color: #5c9f72; box-shadow: 0 0 0 2px #3f8c5c10; }
+.input-shell.invalid { border-color: #d39885; background: #fffbf8; }
+textarea { display: block; width: 100%; padding: 6px 9px; min-height: 46px; max-height: 220px; resize: vertical; border: 0; outline: 0; background: transparent; color: #344f35; font: 12px/17px var(--mono); tab-size: 2; }
+textarea::selection { background: #d0e9c6; }
+textarea::placeholder { color: #a0ac96; }
+.input-status { display: flex; align-items: flex-start; gap: 5px; margin-top: 6px; color: #b05c49; font-size: 11px; line-height: 1.5; }
+.input-status .icon { width: 14px; height: 14px; margin-top: 1px; }
+.operation-bar, .action-row, .direction-buttons { display: flex; align-items: center; }
+.operation-bar { flex-wrap: wrap; gap: 6px 10px; margin-top: 7px; }
+.action-row { gap: 5px; }
+.button { height: 28px; padding: 0 11px; border: 1px solid #dce4d4; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font: 11px var(--mono); }
+.button .icon { width: 13px; height: 13px; }
+.button-neutral { background: #fff; }
+.button-neutral:hover { background: #f1f6ea; }
+.button-dark { background: #315f43; border-color: #315f43; color: #fff; }
+.button-dark:hover { background: #247344; }
+.direction-buttons { border: 1px solid #dce4d4; background: #f9fbf6; border-radius: 4px; overflow: hidden; }
+.direction-button { height: 26px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; color: #839177; font: 10px var(--mono); }
+.direction-button:first-child { border-right: 1px solid #dce4d4; }
+.direction-button .icon { width: 13px; height: 13px; }
+.direction-button[aria-pressed=true] { background: #e8f3e5; color: #2e6c43; }
+.direction-button:hover:not(:disabled) { background: #edf5e7; }
+.results-section { grid-area: results; min-width: 0; }
+.results-heading { display: flex; align-items: center; gap: 12px; min-height: 29px; margin-bottom: 6px; }
+.result-direction { font: 10px var(--mono); color: #4e7b4e; background: #eaf1e4; border-radius: 4px; padding: 4px 6px; }
+.results-heading>.formula { overflow: hidden; text-overflow: ellipsis; }
+.precision-control { display: flex; gap: 5px; align-items: center; margin-left: auto; flex-shrink: 0; color: #87927a; font-size: 10px; }
+.precision-control select { height: 24px; padding: 0 4px; min-width: 40px; }
+.results-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.result-card { border: 1px solid #dfe6d7; border-radius: 6px; background: #fff; min-width: 0; overflow: hidden; }
+.result-card:hover { border-color: #a6bca0; }
+.result-card-header { padding: 4px 7px 0 9px; display: flex; align-items: center; gap: 7px; min-height: 26px; }
+.result-card h3 { font: 550 11px var(--mono); color: #4b6648; margin: 0; flex-shrink: 0; }
+.result-layout { font: 9px var(--mono); color: #93a089; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-button { display: grid; place-items: center; flex-shrink: 0; margin-left: auto; border: 0; border-radius: 3px; background: transparent; color: #94a38a; width: 24px; height: 22px; padding: 0; }
+.copy-button .icon { width: 13px; height: 13px; }
+.copy-button:hover, .copy-button.copied { color: #267c46; background: #edf5e5; }
+.result-card pre { margin: 0; padding: 5px 9px 8px; min-height: 32px; font: 12px/18px var(--mono); color: #476443; white-space: pre; overflow-x: auto; scrollbar-width: thin; font-variant-numeric: tabular-nums; }
+.result-card.matrix pre { font-size: 11px; line-height: 17px; }
+.result-card.pose { grid-column: 1 / -1; border-color: #d5e2c8; background: #f0f6e9; }
+.result-card.empty pre { color: #adb3a3; }
+.output-notice { margin: 0 0 6px; padding: 6px 9px; border: 1px solid #ecdfc3; border-radius: 5px; background: #fff7e8; color: #9c7c3d; font-size: 10px; line-height: 1.6; }
+.viewer-panel { grid-area: viewer; position: sticky; top: 12px; height: min(590px, calc(100svh - 96px)); min-height: 300px; border: 1px solid #20343b; border-radius: 8px; background: #11242d; color: #d8e7e4; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.viewer-heading { min-height: 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; gap: 8px; border-bottom: 1px solid #293d43; }
+.viewer-heading h2 { color: #d4e5dc; }
+.viewer-reference { display: flex; align-items: center; gap: 6px; color: #a5bdb2; font-size: 10px; white-space: nowrap; }
+.viewer-reference select { height: 26px; padding: 0 5px; color-scheme: dark; color: #d4e5dc; border-color: #416059; background: #19323b; }
+.viewer-topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px 0; }
+.frame-legend { display: flex; gap: 14px; font: 10px var(--mono); color: #b0c8bd; }
+.frame-legend span { display: flex; align-items: center; gap: 5px; }
+.frame-legend i { width: 5px; height: 5px; border-radius: 50%; }
+.robot-dot { background: #88e1c3; }
+.camera-dot { background: #e8b775; }
+.reading-axis { display: flex; gap: 8px; }
+.reading-axis i { font: 10px var(--mono); }
+.axis-x { color: #ff7c82; }
+.axis-y { color: #66d9a4; }
+.axis-z { color: #71b5ff; }
+.canvas-wrap { position: relative; flex: 1; min-height: 160px; overflow: hidden; }
+.canvas-wrap canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; outline-offset: -3px; cursor: grab; }
+.canvas-wrap canvas.dragging { cursor: grabbing; }
+.canvas-wrap canvas:focus-visible { outline: 1px solid #4b8d7c; }
+.viewer-empty, .viewer-error { position: absolute; inset: 15px; display: grid; place-items: center; text-align: center; font-size: 11px; }
+.viewer-empty { color: #94adb6; pointer-events: none; }
+.viewer-error { color: #f3cc91; }
+.viewer-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 7px; gap: 5px; }
+.view-presets { display: flex; gap: 1px; border: 1px solid #30424a; border-radius: 4px; padding: 2px; }
+.view-presets button { min-width: 30px; height: 22px; border: 0; border-radius: 3px; padding: 0 6px; background: transparent; color: #729188; font: 9px var(--mono); }
+.view-presets button.active, .view-presets button:hover { background: #2a4145; color: #d2e9df; }
+.viewer-tools { display: flex; gap: 4px; }
+.viewer-tools button { width: 26px; height: 26px; background: transparent; border: 1px solid #30424a; border-radius: 4px; color: #99b7af; display: grid; place-items: center; }
+.viewer-tools button:hover { background: #2a4145; }
+.viewer-tools .icon { width: 13px; height: 13px; }
+.viewer-help { padding: 0 6px 9px; font-size: 9px; color: #6e8b83; text-align: center; }
+.touch-help { display: none; }
+.viewer-reading { border-top: 1px solid #293d43; padding: 9px 12px; background: #142831; }
+.viewer-reading>span { color: #79948a; font-size: 9px; }
+.viewer-reading strong { display: block; font: 10px/1.6 var(--mono); color: #b6cbbd; margin-top: 2px; overflow-wrap: anywhere; }
+.guide { border-top: 1px solid #dce4d4; margin-top: 10px; }
+.guide summary { list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 8px 1px; color: #829477; font-size: 10px; }
+.guide summary::-webkit-details-marker { display: none; }
+.guide summary>span:first-child { display: flex; gap: 6px; align-items: center; }
+.guide summary .icon { width: 13px; height: 13px; }
+.guide summary>span:last-child { font-size: 15px; }
+.guide[open] summary>span:last-child { transform: rotate(45deg); }
+.guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 0 0 10px; color: #819276; font-size: 11px; line-height: 1.8; }
+.guide h3 { margin: 4px 0; color: #55734c; font-size: 11px; font-weight: 550; }
+.guide p { margin: 5px 0; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; max-width: calc(100% - 24px); padding: 9px 15px; border-radius: 6px; background: #254d3bf2; color: #f1fcf0; font-size: 11px; line-height: 1.6; text-align: center; box-shadow: 0 4px 18px #203b2720; }
+.noscript { position: fixed; inset: 0; background: #f4f6f3f2; display: grid; place-items: center; padding: 25px; }
+[hidden] { display: none !important; }
+@media (min-width: 1280px) {
+  .format-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+}
+@media (min-width: 1600px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) 360px; }
+}
+@media (max-width: 1179px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "input" "results" "viewer"; gap: 10px; }
+  .viewer-panel { position: relative; height: 330px; margin-top: 2px; top: auto; }
+  .viewer-topline { position: absolute; top: 36px; left: 0; right: 0; z-index: 1; pointer-events: none; }
+  .viewer-reading { display: flex; align-items: center; gap: 10px; padding: 6px 12px; }
+  .viewer-reading strong { margin-top: 0; }
+  .viewer-help { padding-bottom: 6px; }
+  .guide { margin-top: 8px; }
+}
+@media (min-width: 850px) and (max-width: 1179px) {
+  .format-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .masthead { padding: 0 10px; gap: 8px; }
+  .brand-heading { gap: 9px; }
+  .brand { gap: 6px; font-size: 11px; }
+  h1 { padding-left: 9px; font-size: 12px; }
+  .masthead-right { gap: 10px; font-size: 10px; }
+  .local-badge { display: none; }
+  .page { padding: 8px; }
+  .panel-heading { align-items: flex-start; gap: 12px; padding: 6px 8px; }
+  .input-body { padding: 8px; }
+  .format-grid { gap: 4px; }
+  .format-button { font-size: 9px; padding: 4px 1px; min-height: 30px; }
+  .results-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .results-heading { flex-wrap: wrap; column-gap: 8px; row-gap: 4px; }
+  .results-heading>.formula { order: 3; width: 100%; }
+  .result-card-header { padding-left: 7px; gap: 5px; }
+  .result-card h3 { font-size: 10px; }
+  .result-layout { font-size: 8px; }
+  .result-card pre { font-size: 11px; padding-left: 7px; padding-right: 7px; }
+  .result-card.matrix pre { font-size: 10px; }
+  .direction-button { padding: 0 9px; }
+  .guide-grid { grid-template-columns: 1fr; gap: 8px; }
+  .viewer-panel { height: 320px; }
+  .touch-help { display: block; margin-top: 3px; font-size: 8px; }
+  .viewer-reading strong { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .operation-bar { gap: 6px; }
+  .action-row { flex: 1; }
+  .action-row button { flex: 1; }
+  .direction-buttons { flex: 1 1 100%; }
+  .direction-button { flex: 1; }
+  .result-card-header { flex-wrap: wrap; gap: 0 5px; }
+  .result-card-header .result-layout { flex: 1 1 100%; order: 3; font-size: 8px; padding-bottom: 3px; }
+  .copy-button { height: 26px; width: 26px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-axes" viewBox="0 0 24 24"><path d="M12 13V3m0 10 8 5m-8-5-8 5M9 6l3-3 3 3m2 8 3 4-5 1M7 14l-3 4 5 1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5M9 9h6v6H9z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-11v1"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 9 5v9l-9 5-9-5V8l9-5Zm0 10 9-5M3 8l9 5v9M8 5l9 6"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="m8 4-5 8 5 8m8-16 5 8-5 8"/></symbol>
+  </svg>
+
+  <header class="masthead">
+    <div class="brand-heading"><a class="brand" href="#" aria-label="TF Translate 首页"><span class="brand-mark">tf</span><span>TF Translate</span></a><h1 id="page-title">外参转换</h1></div>
+    <div class="masthead-right"><span class="local-badge"><i></i> 本地计算 · Float64</span><a href="#guide">使用说明</a></div>
+  </header>
+
+  <main class="page">
+    <div class="workspace">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="panel-heading"><h2 id="input-title">输入</h2><span class="input-workflow">先填数值，再点击格式叠加</span></div>
+        <div class="input-body">
+          <div class="field-heading"><label for="input-values">外参数值</label><span id="input-count" class="count-badge" aria-live="polite">0 个数字</span></div>
+          <div id="input-shell" class="input-shell"><textarea id="input-values" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴数值，支持空格、逗号、换行与混合文本" aria-describedby="input-hint input-status"></textarea></div>
+          <p id="input-hint" class="sr-only">点击下方格式按钮时，按当前结果方向叠加数值。数字个数必须与格式匹配。</p>
+          <div id="input-status" class="input-status" role="status" aria-live="polite" hidden><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span id="input-message"></span></div>
+          <div id="format-buttons" class="format-grid" role="group" aria-label="按格式应用增量"></div>
+          <div class="operation-bar"><div class="action-row"><button id="identity-button" class="button button-neutral" title="结果设为单位变换"><svg class="icon"><use href="#i-cube"/></svg>Identity</button><button id="inverse-button" class="button button-dark" title="切换为逆变换" disabled><svg class="icon"><use href="#i-swap"/></svg>Inverse</button><button id="clear-result-button" class="button button-neutral" title="清空结果，保留输入"><svg class="icon"><use href="#i-reset"/></svg>重置</button></div><div class="direction-buttons" role="group" aria-label="选择结果与叠加方向"><button id="robot-camera-button" class="direction-button" aria-label="方向 Robot → Camera" aria-pressed="false">Robot <svg class="icon"><use href="#i-arrow"/></svg> Camera</button><button id="camera-robot-button" class="direction-button" aria-label="方向 Camera → Robot" aria-pressed="true">Camera <svg class="icon"><use href="#i-arrow"/></svg> Robot</button></div></div>
+        </div>
+      </section>
+
+      <section id="results" class="results-section" aria-labelledby="results-title">
+        <div class="results-heading"><h2 id="results-title">结果 <span id="result-direction" class="result-direction">Camera → Robot</span></h2><code id="result-formula" class="formula">尚无结果</code><label class="precision-control" for="precision">有效数字 <select id="precision" aria-label="输出有效数字位数"></select><span>位</span></label></div>
+        <div id="output-notice" class="output-notice" role="status" hidden></div>
+        <div id="results-grid" class="results-grid"></div>
+      </section>
+
+      <section class="viewer-panel" aria-labelledby="viewer-title">
+        <div class="viewer-heading"><h2 id="viewer-title">空间关系</h2><label class="viewer-reference" for="reference-frame">绘图基准 <select id="reference-frame"><option value="robot">Robot</option><option value="camera">Camera</option></select></label></div>
+        <div class="viewer-topline"><div class="frame-legend"><span><i class="robot-dot"></i> Robot</span><span><i class="camera-dot"></i> Camera</span></div><span class="reading-axis"><i class="axis-x">X</i><i class="axis-y">Y</i><i class="axis-z">Z</i></span></div>
+        <div class="canvas-wrap"><canvas id="frame-canvas" tabindex="0" role="img" aria-label="尚无空间关系"></canvas><div id="viewer-empty" class="viewer-empty" aria-hidden="true">应用外参后显示坐标关系</div><div id="viewer-error" class="viewer-error" hidden></div></div>
+        <div class="viewer-toolbar"><div class="view-presets" role="group" aria-label="预设视角"><button data-view="isometric" class="active" aria-pressed="true">等轴测</button><button data-view="top" aria-pressed="false">XY</button><button data-view="front" aria-pressed="false">XZ</button><button data-view="side" aria-pressed="false">YZ</button></div><div class="viewer-tools"><button id="fit-view" title="适应视图 (F)" aria-label="适应视图"><svg class="icon"><use href="#i-fit"/></svg></button><button id="reset-view" title="视角复位 (R)" aria-label="视角复位"><svg class="icon"><use href="#i-reset"/></svg></button></div></div>
+        <div class="viewer-help">拖动旋转 · 滚轮缩放 · 右键平移<span class="touch-help">单指旋转 · 双指缩放 / 平移</span></div>
+        <div class="viewer-reading"><span id="translation-caption">相对平移</span><strong id="translation-reading">—</strong></div>
+      </section>
+    </div>
+
+    <details id="guide" class="guide"><summary><span><svg class="icon"><use href="#i-info"/></svg> 坐标约定与使用说明</span><span aria-hidden="true">+</span></summary><div class="guide-grid"><article><h3>叠加方向与绘图基准</h3><p>输入数值后点击对应格式，按 T_new = ΔT · T_old 叠加。平移直接相加，新增旋转也会旋转已有平移。输入会保留，再点一次就再叠加一次。重置清空结果，Identity 直接生成单位变换。</p><p>采用右手系与列向量，默认 Camera → Robot：p_robot = R · p_camera + t。查看 IMU 外参时，Robot 对应 base_link，Camera 对应 IMU，可直接按默认方向应用 imu_to_baselink。</p><p>在「绘图基准」选择要固定的坐标系。图中显示另一坐标系在基准中的位姿；切换基准仅影响绘图，切换结果方向也不会改变基准。重置保留已选基准。</p></article><article><h3>旋转、矩阵与数值</h3><p>RPY 为固定轴 XYZ，R = Rz(yaw) · Ry(pitch) · Rx(roll)；YPR 按 yaw、pitch、roll 排列，角度均为度。接近 ±90° pitch 时，欧拉角解不唯一。</p><p>矩阵行主序每行列出一行，列主序每行列出一列。复制文本包含纯数字；TUM 包含七个数字，无时间戳。四元数 q 与 −q 表示同一旋转。</p><p>数字标签（如 q1、3×3）中的数字也会计数。逗号作为分隔符，十进制小数请使用点。计算保留 64 位浮点精度，显示位数只影响文本。</p></article></div></details>
+
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><div class="noscript">此工具需要启用 JavaScript，才能在浏览器中完成转换与三维绘图。</div></noscript>
+  <script>(()=>{var ft=e=>{throw TypeError(e)};var nt=(e,t,o)=>t.has(e)||ft("Cannot "+o);var z=(e,t,o)=>(nt(e,t,"read from private field"),o?o.call(e):t.get(e)),B=(e,t,o)=>t.has(e)?ft("Cannot add the same private member more than once"):t instanceof WeakSet?t.add(e):t.set(e,o),G=(e,t,o,n)=>(nt(e,t,"write to private field"),n?n.call(e,o):t.set(e,o),o),N=(e,t,o)=>(nt(e,t,"access private method"),o);var ot=[{id:"translation",label:"Translation",layout:"[x y z]",count:3,group:"vector"},{id:"quat-xyzw",label:"Quaternion",layout:"[qx qy qz qw]",count:4,group:"quaternion"},{id:"quat-wxyz",label:"Quaternion",layout:"[qw qx qy qz]",count:4,group:"quaternion"},{id:"rpy",label:"RPY (ROS)",layout:"[roll pitch yaw] \xB7 deg",count:3,group:"euler"},{id:"ypr",label:"YPR",layout:"[yaw pitch roll] \xB7 deg",count:3,group:"euler"},{id:"mat3-row",label:"3\xD73 Matrix",layout:"Row-major \xB7 \u884C\u4E3B\u5E8F",count:9,group:"matrix"},{id:"mat3-col",label:"3\xD73 Matrix",layout:"Column-major \xB7 \u5217\u4E3B\u5E8F",count:9,group:"matrix"},{id:"mat4-row",label:"4\xD74 Matrix",layout:"Row-major \xB7 \u884C\u4E3B\u5E8F",count:16,group:"matrix"},{id:"mat4-col",label:"4\xD74 Matrix",layout:"Column-major \xB7 \u5217\u4E3B\u5E8F",count:16,group:"matrix"},{id:"tum",label:"TUM",layout:"[tx ty tz qx qy qz qw]",count:7,group:"pose"}],mt=1e-4,Lt=1e-8,A=()=>({translation:[0,0,0],rotation:[0,0,0,1]}),b=class extends Error{constructor(t,o={}){super(t),this.name="InputError",Object.assign(this,o)}};function H(e){let t=ot.find(o=>o.id===e);if(!t)throw new b("\u672A\u77E5\u7684\u8F93\u5165\u683C\u5F0F\u3002");return t}function it(e){return(String(e).replace(/&(?:nbsp|ensp|emsp|thinsp|tab|newline);|&#(x[\da-f]+|\d+);/gi,(n,i)=>{if(i===void 0)return" ";let s=Number(/^x/i.test(i)?`0${i}`:i);return s<=1114111&&/\s/.test(String.fromCodePoint(s))?" ":n}).replace(/[０-９]/g,n=>String.fromCharCode(n.charCodeAt(0)-65248)).replace(/[−－]/g,"-").replace(/＋/g,"+").replace(/．/g,".").match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g)||[]).map(Number)}function v(e){if(e.length!==4||e.some(a=>!Number.isFinite(a)))throw new b("\u56DB\u5143\u6570\u5FC5\u987B\u5305\u542B\u56DB\u4E2A\u6709\u9650\u6570\u503C\u3002");let t=Math.max(...e.map(Math.abs));if(t===0)throw new b("\u56DB\u5143\u6570\u4E0D\u80FD\u5168\u4E3A\u96F6\uFF0C\u8BF7\u8F93\u5165\u6709\u6548\u65CB\u8F6C\u3002");let o=e.map(a=>a/t),n=Math.hypot(...o),i=o.map(a=>a/n),s=i[3]!==0?i[3]:i.find(a=>a!==0);return i.map(a=>(s<0?-a:a)||0)}function U(e,t){let[o,n,i,s]=e,[a,c,y,d]=t;return[s*a+o*d+n*y-i*c,s*c-o*y+n*d+i*a,s*y+o*c-n*a+i*d,s*d-o*a-n*c-i*y]}function L(e){let[t,o,n,i]=v(e);return[[1-2*(o*o+n*n),2*(t*o-n*i),2*(t*n+o*i)],[2*(t*o+n*i),1-2*(t*t+n*n),2*(o*n-t*i)],[2*(t*n-o*i),2*(o*n+t*i),1-2*(t*t+o*o)]]}function j(e){let t=e[0][0]+e[1][1]+e[2][2],o;if(t>0){let n=Math.sqrt(t+1)*2;o=[(e[2][1]-e[1][2])/n,(e[0][2]-e[2][0])/n,(e[1][0]-e[0][1])/n,n/4]}else if(e[0][0]>e[1][1]&&e[0][0]>e[2][2]){let n=Math.sqrt(1+e[0][0]-e[1][1]-e[2][2])*2;o=[n/4,(e[0][1]+e[1][0])/n,(e[0][2]+e[2][0])/n,(e[2][1]-e[1][2])/n]}else if(e[1][1]>e[2][2]){let n=Math.sqrt(1+e[1][1]-e[0][0]-e[2][2])*2;o=[(e[0][1]+e[1][0])/n,n/4,(e[1][2]+e[2][1])/n,(e[0][2]-e[2][0])/n]}else{let n=Math.sqrt(1+e[2][2]-e[0][0]-e[1][1])*2;o=[(e[0][2]+e[2][0])/n,(e[1][2]+e[2][1])/n,n/4,(e[1][0]-e[0][1])/n]}return v(o)}function W(e,t){return e.map(o=>o.reduce((n,i,s)=>n+i*t[s],0))}function Tt(e){let[t,o,n]=e.map(f=>f%360*Math.PI/360),[i,s,a]=[t,o,n].map(Math.cos),[c,y,d]=[t,o,n].map(Math.sin);return v([c*s*a-i*y*d,i*y*a+c*s*d,i*s*d-c*y*a,i*s*a+c*y*d])}function V(e){let t=L(e),o=Math.hypot(t[0][0],t[1][0]),n=o<1e-10,i=n?0:Math.atan2(t[2][1],t[2][2]),s=Math.atan2(-t[2][0],o),a=n?Math.atan2(-t[0][1],t[1][1]):Math.atan2(t[1][0],t[0][0]);return{angles:[i,s,a].map(c=>c*180/Math.PI),gimbalLock:n}}function yt(e){return e.map((t,o)=>e.map((n,i)=>e.reduce((s,a)=>s+a[o]*a[i],0)-+(o===i)))}function Ct(e){let t=Math.max(...yt(e).flat().map(Math.abs)),[o,n,i]=e,s=o[0]*(n[1]*i[2]-n[2]*i[1])-o[1]*(n[0]*i[2]-n[2]*i[0])+o[2]*(n[0]*i[1]-n[1]*i[0]),a=Math.abs(s-1),c=Math.max(t,a);if(!Number.isFinite(c)||c>mt)throw new b(`\u65CB\u8F6C\u77E9\u9635\u65E0\u6548\uFF1AR\u1D40R \u7684\u6700\u5927\u8BEF\u5DEE\u548C |det(R) \u2212 1| \u5747\u987B \u2264 ${mt.toExponential()}\uFF0C\u8BF7\u68C0\u67E5\u7F29\u653E\u3001\u526A\u5207\u6216\u955C\u50CF\u3002`);return c>1e-12}function kt(e){let t=e;for(let o=0;o<3;o++){let n=yt(t);t=t.map(i=>{let s=W(n,i);return i.map((a,c)=>a-s[c]/2)})}return t}function xt(e,t){let o=H(t),n=it(e);if(n.length!==o.count)throw new b(`\u6570\u5B57\u6570\u91CF\u4E0D\u7B26\uFF1A${o.label} \u9700\u8981 ${o.count} \u4E2A\uFF0C\u5B9E\u9645\u63D0\u53D6 ${n.length} \u4E2A\u3002`,{actual:n.length,required:o.count});if(n.some(c=>!Number.isFinite(c)))throw new b("\u8F93\u5165\u542B\u6EA2\u51FA\u6216\u975E\u6709\u9650\u6570\u503C\uFF0C\u8BF7\u68C0\u67E5\u79D1\u5B66\u8BA1\u6570\u6CD5\u7684\u6307\u6570\u3002");let i=A(),s=[],a;if(t==="translation")i.translation=n;else if(t==="quat-xyzw")a=n;else if(t==="quat-wxyz")a=[...n.slice(1),n[0]];else if(t==="tum")i.translation=n.slice(0,3),a=n.slice(3);else if(t==="rpy"||t==="ypr")i.rotation=Tt(t==="rpy"?n:[...n].reverse());else{let c=t.startsWith("mat3")?3:4,y=t.endsWith("col"),d=Array.from({length:c},(w,M)=>Array.from({length:c},(O,Q)=>n[y?Q*c+M:M*c+Q]));if(c===4){let w=[0,0,0,1];if(d[3].some((M,O)=>Math.abs(M-w[O])>Lt))throw new b("4\xD74 \u9F50\u6B21\u77E9\u9635\u7684\u672B\u884C\u5FC5\u987B\u4E3A [0 0 0 1]\uFF08\u5BB9\u5DEE 1e-8\uFF09\u3002");d[3].some((M,O)=>M!==w[O])&&s.push("\u9F50\u6B21\u77E9\u9635\u672B\u884C\u5DF2\u89C4\u8303\u5316\u4E3A [0 0 0 1]\u3002"),i.translation=d.slice(0,3).map(M=>M[3])}let f=d.slice(0,3).map(w=>w.slice(0,3)),x=Ct(f);x&&s.push("\u65CB\u8F6C\u77E9\u9635\u5DF2\u6821\u6B63\u4E3A\u6700\u63A5\u8FD1\u7684\u6709\u6548\u65CB\u8F6C\u3002"),i.rotation=j(x?kt(f):f)}return a&&(i.rotation=v(a),Math.abs(Math.hypot(...a)-1)>1e-12&&s.push("\u8F93\u5165\u56DB\u5143\u6570\u5DF2\u5F52\u4E00\u5316\u4E3A\u5355\u4F4D\u56DB\u5143\u6570\u3002")),{transform:i,values:n,notices:s}}function gt(e,t){let o=v(U(e.rotation,t.rotation)),n=W(L(e.rotation),t.translation).map((i,s)=>i+e.translation[s]);if(n.some(i=>!Number.isFinite(i)))throw new b("\u53E0\u52A0\u540E\u7684\u5E73\u79FB\u8D85\u51FA\u6D6E\u70B9\u6570\u8303\u56F4\uFF0C\u8BF7\u51CF\u5C0F\u8F93\u5165\u6570\u503C\u3002");return{rotation:o,translation:n}}function bt(e){let[t,o,n,i]=e.rotation,s=v([-t,-o,-n,i]),a=W(L(s),e.translation).map(c=>-c);if(a.some(c=>!Number.isFinite(c)))throw new b("\u6C42\u9006\u540E\u7684\u5E73\u79FB\u8D85\u51FA\u6D6E\u70B9\u6570\u8303\u56F4\uFF0C\u8BF7\u51CF\u5C0F\u8F93\u5165\u6570\u503C\u3002");return{rotation:s,translation:a}}function $t(e){return[...L(e.rotation).map((t,o)=>[...t,e.translation[o]]),[0,0,0,1]]}function St(e,t){H(t);let o=e.translation,n=v(e.rotation);if(t==="translation")return[...o];if(t==="quat-xyzw")return n;if(t==="quat-wxyz")return[n[3],...n.slice(0,3)];if(t==="tum")return[...o,...n];if(t==="rpy")return V(n).angles;if(t==="ypr")return V(n).angles.reverse();let i=t.startsWith("mat3")?L(n):$t(e);return t.endsWith("col")?i[0].flatMap((s,a)=>i.map(c=>c[a])):i.flat()}function st(e,t=9){if(!Number.isFinite(e))throw new b("\u8F6C\u6362\u7ED3\u679C\u8D85\u51FA\u6D6E\u70B9\u6570\u8303\u56F4\u3002");if(!Number.isInteger(t)||t<1||t>17)throw new b("\u663E\u793A\u7CBE\u5EA6\u987B\u4E3A 1\u201317 \u4F4D\u6709\u6548\u6570\u5B57\u3002");if(e===0)return"0.0";let[o,n]=e.toPrecision(t).split("e"),i=o.includes(".")?o.replace(/0+$/,"").replace(/\.$/,""):o;return i.includes(".")||(i+=".0"),n===void 0?i:`${i}e${n}`}function rt(e,t,o=9){let n=St(e,t).map(s=>st(s,o));if(!t.startsWith("mat"))return n.join(" ");let i=t.startsWith("mat3")?3:4;return Array.from({length:i},(s,a)=>n.slice(a*i,(a+1)*i).join(" ")).join(`
+`)}var T={"robot-camera":{source:"Robot",target:"Camera",formula:"p_camera = R \xB7 p_robot + t"},"camera-robot":{source:"Camera",target:"Robot",formula:"p_robot = R \xB7 p_camera + t"}},wt=e=>e==="robot-camera"?"camera-robot":"robot-camera",vt={robot:"camera-robot",camera:"robot-camera"},R,k,C,at,ct,X=class{constructor(){B(this,C);B(this,R);B(this,k,"robot");this.outputDirection="camera-robot",this.draft="",this.precision=9,this.clearResult()}setDraft(t){this.draft=t,this.draftError=null}applyFormat(t){try{let{transform:o,notices:n}=xt(this.draft,t);N(this,C,at).call(this,gt(o,this.result??A()),n)}catch(o){if(!(o instanceof b))throw o;this.draftError=o}}get referenceFrame(){return z(this,k)}selectReferenceFrame(t){t===z(this,k)||!Object.prototype.hasOwnProperty.call(vt,t)||(G(this,k,t),N(this,C,ct).call(this))}selectOutputDirection(t){Object.prototype.hasOwnProperty.call(T,t)&&(this.outputDirection=t)}invertOutput(){z(this,R)&&(this.outputDirection=wt(this.outputDirection))}resetIdentity(){N(this,C,at).call(this,A(),[])}clearResult(){G(this,R,null),this.scene=null,this.notices=[],this.draftError=null}get result(){return z(this,R)?.[this.outputDirection]??null}};R=new WeakMap,k=new WeakMap,C=new WeakSet,at=function(t,o){G(this,R,{[this.outputDirection]:t,[wt(this.outputDirection)]:bt(t)}),N(this,C,ct).call(this),this.notices=o,this.draftError=null},ct=function(){let t=vt[z(this,k)],{source:o,target:n}=T[t];this.scene=z(this,R)?{source:n,target:o,pose:z(this,R)[t]}:null};var K=["#ff7c82","#66d9a4","#71b5ff"],$=(e,t,o)=>Math.min(o,Math.max(t,e)),Z=(e,t)=>[e[1]*t[2]-e[2]*t[1],e[2]*t[0]-e[0]*t[2],e[0]*t[1]-e[1]*t[0]],J=e=>{let t=Math.hypot(...e);return e.map(o=>o/t)};function Ot(e){return[{name:e.source,...A(),fixed:!0},{name:e.target,...e.pose,fixed:!1}]}function lt(){let e=J([5,-7,5]),t=J(Z([0,0,1],e));return j([t,Z(e,t),e])}function Ft(e,t){let o=e.reduce((n,i,s)=>n+i*t[s],0);return o<-.999999?[...J(Z(e,Math.abs(e[0])<.9?[1,0,0]:[0,1,0])),0]:v([...Z(e,t),1+o])}var I=class{constructor(t){if(this.canvas=t,this.ctx=t.getContext("2d"),!this.ctx)throw new Error("\u5F53\u524D\u6D4F\u89C8\u5668\u65E0\u6CD5\u521B\u5EFA Canvas \u753B\u5E03\u3002");this.orientation=lt(),this.zoom=1,this.pan=[0,0],this.pointers=new Map,this.width=1,this.height=1,this.scene=null,this.installControls(),this.observer=new ResizeObserver(()=>this.resize()),this.observer.observe(t),this.resize()}resize(){let t=this.canvas.getBoundingClientRect();this.width=Math.max(1,t.width),this.height=Math.max(1,t.height);let o=Math.min(window.devicePixelRatio||1,2);this.canvas.width=Math.round(this.width*o),this.canvas.height=Math.round(this.height*o),this.ctx.setTransform(o,0,0,o,0,0),this.requestRender()}setScene(t){this.scene!==t&&(this.scene=t,this.requestRender())}fit(){this.zoom=1,this.pan=[0,0],this.requestRender()}reset(){this.orientation=lt(),this.fit()}setView(t){let o={top:[0,0,0,1],front:j([[1,0,0],[0,0,1],[0,-1,0]]),side:j([[0,1,0],[0,0,1],[1,0,0]])};this.orientation=o[t]||lt(),this.fit()}spherePoint(t){let o=Math.min(this.width,this.height)*.43,n=(t[0]-this.width/2)/o,i=-(t[1]-this.height/2)/o,s=n*n+i*i;return s<=1?[n,i,Math.sqrt(1-s)]:J([n,i,0])}beginGesture(t=!1){let o=[...this.pointers.values()];o.length&&(this.gesture={points:o.map(n=>[...n]),pan:t,orientation:[...this.orientation],offset:[...this.pan],zoom:this.zoom})}installControls(){let t=n=>{let i=this.canvas.getBoundingClientRect();return[n.clientX-i.left,n.clientY-i.top]};this.canvas.addEventListener("contextmenu",n=>n.preventDefault()),this.canvas.addEventListener("pointerdown",n=>{n.button!==0&&n.button!==1&&n.button!==2||(n.preventDefault(),this.canvas.focus({preventScroll:!0}),this.canvas.setPointerCapture(n.pointerId),this.pointers.set(n.pointerId,t(n)),this.beginGesture(n.button!==0||n.shiftKey||n.ctrlKey||n.metaKey),this.canvas.classList.add("dragging"))}),this.canvas.addEventListener("pointermove",n=>{if(!this.pointers.has(n.pointerId))return;this.pointers.set(n.pointerId,t(n));let i=[...this.pointers.values()],s=this.gesture;if(!s||s.points.length!==i.length){this.beginGesture();return}if(i.length>=2){let a=f=>[(f[0][0]+f[1][0])/2,(f[0][1]+f[1][1])/2],c=a(s.points),y=a(i),d=f=>Math.hypot(f[0][0]-f[1][0],f[0][1]-f[1][1]);this.zoom=$(s.zoom*d(i)/Math.max(1,d(s.points)),.08,80),this.pan=s.offset.map((f,x)=>f+y[x]-c[x])}else s.pan?this.pan=s.offset.map((a,c)=>a+i[0][c]-s.points[0][c]):this.orientation=v(U(Ft(this.spherePoint(s.points[0]),this.spherePoint(i[0])),s.orientation));this.requestRender()});let o=n=>{this.pointers.delete(n.pointerId),this.pointers.size?this.beginGesture():(this.gesture=null,this.canvas.classList.remove("dragging"))};this.canvas.addEventListener("pointerup",o),this.canvas.addEventListener("pointercancel",o),this.canvas.addEventListener("lostpointercapture",o),this.canvas.addEventListener("wheel",n=>{n.preventDefault();let i=n.deltaY*(n.deltaMode===1?16:n.deltaMode===2?this.height:1);this.zoom=$(this.zoom*Math.exp(-i*.0015),.08,80),this.requestRender()},{passive:!1}),this.canvas.addEventListener("keydown",n=>{if(n.key==="f"||n.key==="F")this.fit();else if(n.key==="r"||n.key==="R")this.reset();else if(n.key==="+"||n.key==="=")this.zoom=$(this.zoom*1.2,.08,80);else if(n.key==="-")this.zoom=$(this.zoom/1.2,.08,80);else if(n.key.startsWith("Arrow")){let i=Math.PI/36,s=n.key==="ArrowLeft"?[0,Math.sin(-i),0,Math.cos(i)]:n.key==="ArrowRight"?[0,Math.sin(i),0,Math.cos(i)]:[Math.sin(n.key==="ArrowUp"?-i:i),0,0,Math.cos(i)];this.orientation=v(U(s,this.orientation))}else return;n.preventDefault(),this.requestRender()})}requestRender(){this.pending||(this.pending=!0,requestAnimationFrame(()=>{this.pending=!1,this.render()}))}render(){let t=this.ctx,{width:o,height:n}=this;if(t.clearRect(0,0,o,n),!this.scene)return;let i=Math.max(...this.scene.pose.translation.map(Math.abs))||1,s=this.scene.pose.translation.map(r=>r/i),a=Math.hypot(...s),c=a<1e-12?.78:$(a*.42,.32,.7),y=s.map(r=>r/2),d=L(this.orientation),f=Math.min(o/3.8,n/3.5)*this.zoom,x=r=>{let l=W(d,r.map((p,h)=>p-y[h]));return[o/2+this.pan[0]+l[0]*f,n/2+this.pan[1]-l[1]*f,l[2]]},w=(r,l,p,h=1,g=!1)=>{t.beginPath(),t.moveTo(r[0],r[1]),t.lineTo(l[0],l[1]),t.strokeStyle=p,t.lineWidth=h,t.setLineDash(g?[5,5]:[]),t.stroke(),t.setLineDash([])},M=(r,l,p,h)=>{w(r,l,p,2.3,h);let g=Math.atan2(l[1]-r[1],l[0]-r[0]);t.beginPath(),t.moveTo(l[0],l[1]),t.lineTo(l[0]-9*Math.cos(g-.4),l[1]-9*Math.sin(g-.4)),t.lineTo(l[0]-9*Math.cos(g+.4),l[1]-9*Math.sin(g+.4)),t.closePath(),t.fillStyle=p,t.fill()};t.save();for(let r=-8;r<=8;r++){let l=r/3;w(x([l,-8/3,-.025]),x([l,8/3,-.025]),r===0?"#426069":"#263c46",r===0?1:.65),w(x([-8/3,l,-.025]),x([8/3,l,-.025]),r===0?"#426069":"#263c46",r===0?1:.65)}let O=x([0,0,0]),Q=x(s);a>1e-12&&w(O,Q,"#94adb6",1.2,!0);let pt=Ot(this.scene).map(r=>({...r,position:r.translation.map(l=>l/i),size:c*(r.fixed?1:.77)})),tt=[];for(let r of pt){let l=L(r.rotation);for(let p=0;p<3;p++){let h=r.position.map((q,F)=>q+l[F][p]*r.size),g=x(r.position),E=x(h);tt.push({start:g,end:E,axis:p,frame:r,depth:(g[2]+E[2])/2})}}tt.sort((r,l)=>r.depth-l.depth),t.font="600 12px ui-monospace, SFMono-Regular, Consolas, monospace",t.textAlign="center",t.textBaseline="middle";for(let r of tt){M(r.start,r.end,K[r.axis],!r.frame.fixed);let l=r.end[0]-r.start[0],p=r.end[1]-r.start[1],h=Math.max(1,Math.hypot(l,p)),g=r.end[0]+l/h*16,E=r.end[1]+p/h*16,q=`${"XYZ"[r.axis]}${r.frame.fixed?"":"\u2032"}`;t.strokeStyle="#11242d",t.lineWidth=5,t.strokeText(q,g,E),t.fillStyle=K[r.axis],t.fillText(q,g,E)}let dt=[];for(let r of pt){let l=x(r.position);t.beginPath(),t.arc(l[0],l[1],r.fixed?5:3,0,2*Math.PI),t.fillStyle=r.name==="Robot"?"#89ebce":"#ffcb80",t.fill();let p=`${r.name}${r.fixed?" \xB7 \u57FA\u51C6":""}`;t.font="600 12px system-ui, sans-serif";let h=t.measureText(p).width+22,g=[[l[0]-h/2,l[1]+(r.fixed?23:-44)],[l[0]-h-18,l[1]-13],[l[0]+18,l[1]-13],[l[0]-h/2,l[1]+40],[l[0]-h/2,l[1]-65]].map(([F,Y])=>[$(F,8,Math.max(8,o-h-8)),$(Y,12,Math.max(12,n-36))]),[E,q]=g.find(([F,Y])=>!dt.some(D=>F<D.x+D.width+7&&F+h+7>D.x&&Y<D.y+33&&Y+33>D.y))||g[0];dt.push({x:E,y:q,width:h}),t.fillStyle="#10232ded",t.strokeStyle=r.name==="Robot"?"#426b60":"#6c5a3e",t.lineWidth=1,t.beginPath(),t.roundRect(E,q,h,26,6),t.fill(),t.stroke(),t.fillStyle=r.name==="Robot"?"#a3f1d9":"#ffcf91",t.fillText(p,E+h/2,q+13)}t.restore();let et=[o-46,n-47];for(let r=0;r<3;r++){let l=d.map(h=>h[r]),p=[et[0]+l[0]*26,et[1]-l[1]*26];w(et,p,K[r],1.8),t.font="10px ui-monospace, monospace",t.fillStyle=K[r],t.fillText("xyz"[r],p[0]+l[0]*7,p[1]-l[1]*7)}}};var m=new X,u=e=>document.getElementById(e),ut=e=>`<svg class="icon" aria-hidden="true"><use href="#i-${e}"/></svg>`,Et=e=>`${T[e].source} \u2192 ${T[e].target}`,At={translation:"Translation","quat-xyzw":"Quat. XYZW","quat-wxyz":"Quat. WXYZ",rpy:"RPY (ROS)",ypr:"YPR","mat3-row":"3\xD73 \u884C\u4E3B\u5E8F","mat3-col":"3\xD73 \u5217\u4E3B\u5E8F","mat4-row":"4\xD74 \u884C\u4E3B\u5E8F","mat4-col":"4\xD74 \u5217\u4E3B\u5E8F",tum:"TUM"},Rt=new Map,P,ht;for(let e of ot){let t=document.createElement("button");t.type="button",t.className="format-button",t.dataset.format=e.id,t.title=`\u5E94\u7528 ${e.label} ${e.layout} \xB7 ${e.count} \u4E2A\u6570\u5B57`,t.setAttribute("aria-label",t.title),t.textContent=At[e.id],t.addEventListener("click",()=>{m.applyFormat(e.id),S()}),u("format-buttons").append(t);let o=document.createElement("article");o.className=`result-card ${e.group}`,o.dataset.format=e.id;let n=document.createElement("div");n.className="result-card-header";let i=document.createElement("h3");i.textContent=e.label;let s=document.createElement("button");s.type="button",s.className="copy-button",s.setAttribute("aria-label",`\u590D\u5236 ${e.label} ${e.layout}`),s.title=`\u590D\u5236 ${e.layout}`,s.innerHTML=ut("copy"),s.addEventListener("click",()=>Pt(e.id,s));let a=document.createElement("div");a.className="result-layout",a.textContent=e.layout,a.title=e.layout,n.append(i,a,s);let c=document.createElement("pre");c.setAttribute("aria-label",`${e.label} \u7ED3\u679C`),o.append(n,c),u("results-grid").append(o),Rt.set(e.id,{card:o,value:c,copy:s})}for(let e=1;e<=17;e++){let t=document.createElement("option");t.value=e,t.textContent=e,u("precision").append(t)}u("precision").value=m.precision;u("input-values").value=m.draft;try{P=new I(u("frame-canvas"))}catch(e){u("viewer-error").textContent=`\u4E09\u7EF4\u753B\u5E03\u4E0D\u53EF\u7528\uFF1A${e.message} \u6570\u503C\u8F6C\u6362\u4ECD\u53EF\u4F7F\u7528\u3002`,u("viewer-error").hidden=!1,u("frame-canvas").hidden=!0,u("fit-view").disabled=!0,u("reset-view").disabled=!0,document.querySelectorAll("[data-view]").forEach(t=>{t.disabled=!0})}function qt(){let{draft:e,draftError:t}=m,o=it(e).length,n=t?.required;u("input-count").textContent=n?`${o} / ${n} \u4E2A\u6570\u5B57`:`${o} \u4E2A\u6570\u5B57`,u("input-count").classList.toggle("invalid",!!t),u("input-shell").classList.toggle("invalid",!!t),u("input-values").setAttribute("aria-invalid",String(!!t)),u("input-message").textContent=t?.message??"",u("input-status").hidden=!t}function S(){qt();let{result:e,outputDirection:t}=m;u("inverse-button").disabled=!e;for(let n of Object.keys(T))u(`${n}-button`).setAttribute("aria-pressed",String(n===t));u("result-direction").textContent=Et(t),u("result-formula").textContent=e?T[t].formula:"\u5C1A\u65E0\u7ED3\u679C";for(let[n,i]of Rt)i.card.classList.toggle("empty",!e),i.value.textContent=e?rt(e,n,m.precision):"\u2014",i.copy.disabled=!e;let o=[...m.notices];e&&m.precision<6&&o.push("\u5F53\u524D\u663E\u793A\u7CBE\u5EA6\u8F83\u4F4E\uFF0C\u590D\u5236\u7684\u77E9\u9635\u7ECF\u820D\u5165\u540E\u53EF\u80FD\u65E0\u6CD5\u901A\u8FC7\u65CB\u8F6C\u6821\u9A8C\uFF1B\u9700\u8981\u518D\u6B21\u8F93\u5165\u65F6\u5EFA\u8BAE\u4F7F\u7528 9\u201317 \u4F4D\u3002"),e&&V(e.rotation).gimbalLock&&o.push("\u5F53\u524D\u65CB\u8F6C\u5904\u4E8E\u4E07\u5411\u8282\u9501\u4F4D\u7F6E\uFF1A\u6B27\u62C9\u89D2\u89E3\u4E0D\u552F\u4E00\uFF0C\u8F93\u51FA\u56FA\u5B9A roll = 0\xB0\uFF1B\u56DB\u5143\u6570\u4E0E\u77E9\u9635\u4ECD\u6709\u6548\u3002"),u("output-notice").textContent=o.join(" "),u("output-notice").hidden=!o.length,zt()}function zt(){let{scene:e,referenceFrame:t}=m;u("reference-frame").value=t;let o=e?.pose.translation.map(n=>st(n,6)).join(", ");u("translation-caption").textContent=e?`${e.target} \u539F\u70B9\u5728 ${e.source} \u4E2D\u7684\u4F4D\u7F6E`:"\u76F8\u5BF9\u5E73\u79FB",u("translation-reading").textContent=o??"\u2014",u("frame-canvas").setAttribute("aria-label",e?`${e.source} \u56FA\u5B9A\u4E3A\u57FA\u51C6\uFF0C${e.target} \u539F\u70B9\u76F8\u5BF9\u5E73\u79FB ${o}\u3002\u62D6\u52A8\u65CB\u8F6C\uFF0C\u6EDA\u8F6E\u7F29\u653E\uFF0C\u53F3\u952E\u5E73\u79FB\uFF1B\u65B9\u5411\u952E\u65CB\u8F6C\uFF0C\u52A0\u51CF\u53F7\u7F29\u653E\uFF0CF \u9002\u5E94\u89C6\u56FE\uFF0CR \u590D\u4F4D\u3002`:"\u5C1A\u65E0\u7A7A\u95F4\u5173\u7CFB"),u("viewer-empty").hidden=!!e||!P,P?.setScene(e)}function Mt(e){clearTimeout(ht),u("toast").textContent=e,u("toast").hidden=!1,ht=setTimeout(()=>{u("toast").hidden=!0},2600)}async function Pt(e,t){let{result:o,outputDirection:n}=m;if(!o)return;let i=rt(o,e,m.precision),s=!1;if(navigator.clipboard&&window.isSecureContext)try{await navigator.clipboard.writeText(i),s=!0}catch{}if(!s){let a=document.activeElement,c=document.createElement("textarea");c.value=i,c.style.cssText="position:fixed;left:-9999px;top:0;opacity:0",c.setAttribute("readonly",""),document.body.append(c),c.select();try{s=document.execCommand("copy")}catch{s=!1}c.remove(),a?.focus({preventScroll:!0})}s?(t.innerHTML=ut("check"),t.classList.add("copied"),setTimeout(()=>{t.innerHTML=ut("copy"),t.classList.remove("copied")},1500),Mt(`\u5DF2\u590D\u5236 ${H(e).label} \xB7 ${Et(n)}`)):Mt("\u590D\u5236\u672A\u83B7\u6D4F\u89C8\u5668\u5141\u8BB8\uFF0C\u8BF7\u9009\u4E2D\u7ED3\u679C\u6587\u672C\u624B\u52A8\u590D\u5236\u3002")}u("input-values").addEventListener("input",e=>{m.setDraft(e.target.value),qt()});u("precision").addEventListener("change",e=>{m.precision=Number(e.target.value),S()});u("reference-frame").addEventListener("change",e=>{m.selectReferenceFrame(e.target.value),zt()});u("identity-button").addEventListener("click",()=>{m.resetIdentity(),S()});u("clear-result-button").addEventListener("click",()=>{m.clearResult(),clearTimeout(ht),u("toast").hidden=!0,S()});u("inverse-button").addEventListener("click",()=>{m.invertOutput(),S()});for(let e of Object.keys(T))u(`${e}-button`).addEventListener("click",()=>{m.selectOutputDirection(e),S()});function _(e){for(let t of document.querySelectorAll("[data-view]"))t.classList.toggle("active",t.dataset.view===e),t.setAttribute("aria-pressed",String(t.dataset.view===e))}document.querySelectorAll("[data-view]").forEach(e=>{e.addEventListener("click",()=>{P?.setView(e.dataset.view),_(e.dataset.view)})});u("fit-view").addEventListener("click",()=>P?.fit());u("reset-view").addEventListener("click",()=>{P?.reset(),_("isometric")});u("frame-canvas").addEventListener("pointerdown",()=>_(null));u("frame-canvas").addEventListener("keydown",e=>{e.key.startsWith("Arrow")&&_(null),e.key.toLowerCase()==="r"&&_("isometric")});S();})();
+</script>
+</body>
+</html>
