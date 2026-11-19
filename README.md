@@ -18,7 +18,7 @@
 - **手机横屏 / 低矮窗口**：保持两栏，顶栏和间距收紧。
 - **竖屏 / 窄窗口**：单列依次显示输入、结果、空间关系，方向切换与 Inverse 固定在底部操作栏，并适配刘海屏安全区。
 
-结果卡片和格式按钮按所在栏宽自动调整列数。界面提供亮色和暗色主题，默认跟随系统，可用顶栏按钮切换（跟随系统 → 亮色 → 暗色），三维画布配色随主题同步。详细说明在顶栏的「使用说明」对话框中。
+格式按钮按平移、四元数、欧拉角、位姿、矩阵分组，换行时同组按钮保持相邻；结果卡片按所在栏宽自动调整列数，结果标题始终标明当前方向。界面提供亮色和暗色主题，默认跟随系统，可用顶栏按钮切换（跟随系统 → 亮色 → 暗色），三维画布配色随主题同步。详细说明在顶栏的「使用说明」对话框中。
 
 ![桌面预览：Robot 为绘图基准](docs/preview-desktop.jpg)
 
@@ -55,7 +55,7 @@ npm run build
 
 使用的是 EdgeOne 控制台边缘函数的 `addEventListener('fetch', …)` / `event.respondWith(...)` 接口。**EdgeOne Pages 的 `onRequest` 是另一种入口，本文件应放入控制台边缘函数。**
 
-官方资料：[返回 HTML 页面](https://edgeone.ai/document/52702)、[Fetch 事件入口](https://edgeone.ai/document/52683)、[边缘函数概述与限制](https://edgeone.ai/document/53372)。当前产物约 48 KiB，构建输出会显示实际大小。
+官方资料：[返回 HTML 页面](https://edgeone.ai/document/52702)、[Fetch 事件入口](https://edgeone.ai/document/52683)、[边缘函数概述与限制](https://edgeone.ai/document/53372)。当前产物约 58 KiB，构建输出会显示实际大小。
 
 ## Cloudflare Workers 部署
 

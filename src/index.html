@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f5f2">
+  <meta name="theme-color" content="#f2f4f1">
   <meta name="color-scheme" content="light dark">
   <meta name="description" content="逐次叠加 Robot 与 Camera 外参增量，转换矩阵、四元数、欧拉角及 TUM，查看三维坐标关系。">
   <title>TF Translate · 坐标变换工作台</title>
@@ -42,7 +42,7 @@
       <section class="panel composer" aria-labelledby="input-title">
         <div class="section-head composer-head">
           <h2 id="input-title"><span class="step" aria-hidden="true">1</span>输入增量</h2>
-          <div class="direction-bar" role="toolbar" aria-label="叠加与结果方向">
+          <div class="direction-bar">
             <div class="segmented direction-buttons" role="group" aria-label="选择结果与叠加方向">
               <button id="camera-robot-button" type="button" aria-label="方向 Camera → Robot" aria-pressed="true">Camera<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>Robot</button>
               <button id="robot-camera-button" type="button" aria-label="方向 Robot → Camera" aria-pressed="false">Robot<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>Camera</button>
@@ -59,6 +59,7 @@
       <section id="results" class="results" aria-labelledby="results-title">
         <div class="section-head results-head">
           <h2 id="results-title"><span class="step" aria-hidden="true">2</span>结果</h2>
+          <span id="result-direction" class="direction-chip" title="当前结果方向">Camera → Robot</span>
           <code id="result-formula" class="formula">尚无结果</code>
           <div class="action-row">
             <button id="identity-button" type="button" class="button" title="结果设为单位变换" aria-label="Identity 结果设为单位变换"><svg class="icon" aria-hidden="true"><use href="#i-cube"/></svg><span class="button-label">Identity</span></button>

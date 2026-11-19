@@ -1,10 +1,10 @@
 import { identity, matrixToQuaternion, multiplyQuaternion, multiplyVector, normalizeQuaternion, quaternionToMatrix } from './math.js';
 
-export const DEFAULT_PALETTE = {
+const DEFAULT_PALETTE = {
   axes: ['#ff7c82', '#66d9a4', '#71b5ff'], grid: '#263c46', gridMajor: '#426069', link: '#94adb6',
   halo: '#11242d', labelBackground: '#10232ded',
-  Robot: { point: '#89ebce', border: '#426b60', text: '#a3f1d9' },
-  Camera: { point: '#ffcb80', border: '#6c5a3e', text: '#ffcf91' },
+  robot: { point: '#89ebce', border: '#426b60', text: '#a3f1d9' },
+  camera: { point: '#ffcb80', border: '#6c5a3e', text: '#ffcf91' },
 };
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -66,7 +66,7 @@ export class FrameViewer {
   }
 
   setPalette(palette) {
-    this.palette = { ...DEFAULT_PALETTE, ...palette };
+    this.palette = palette;
     this.requestRender();
   }
 
@@ -251,7 +251,7 @@ export class FrameViewer {
     const labelBoxes = [];
     for (const frame of frames) {
       const point = project(frame.position);
-      const style = palette[frame.name] ?? DEFAULT_PALETTE.Robot;
+      const style = palette[frame.name.toLowerCase()];
       ctx.beginPath(); ctx.arc(point[0], point[1], frame.fixed ? 5 : 3, 0, 2 * Math.PI);
       ctx.fillStyle = style.point; ctx.fill();
       const label = `${frame.name}${frame.fixed ? ' · 基准' : ''}`;

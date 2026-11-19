@@ -14,6 +14,7 @@ const shortFormats = {
   'mat4-row': '4×4 行主序', 'mat4-col': '4×4 列主序',
   tum: 'TUM',
 };
+const FORMAT_GROUPS = [['vector', '平移'], ['quaternion', '四元数'], ['euler', '欧拉角'], ['pose', '位姿'], ['matrix', '矩阵']];
 const CARD_ORDER = ['tum', 'translation', 'rpy', 'ypr', 'quat-xyzw', 'quat-wxyz', 'mat3-row', 'mat3-col', 'mat4-row', 'mat4-col'];
 const THEMES = { auto: ['auto', '跟随系统'], light: ['sun', '亮色'], dark: ['moon', '暗色'] };
 const THEME_KEY = 'tf-translate-theme';
@@ -26,17 +27,27 @@ let themePreference = 'auto';
 try { themePreference = localStorage.getItem(THEME_KEY) ?? 'auto'; } catch { /* Storage may be blocked. */ }
 if (!['auto', 'light', 'dark'].includes(themePreference)) themePreference = 'auto';
 
-for (const format of FORMATS) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'format-button';
-  button.dataset.format = format.id;
-  button.title = `应用 ${format.label} ${format.layout} · ${format.count} 个数字`;
-  button.setAttribute('aria-label', button.title);
-  button.innerHTML = `<span class="format-name">${shortFormats[format.id]}</span><span class="format-count" aria-hidden="true">${format.count}</span>`;
-  button.addEventListener('click', () => { model.applyFormat(format.id); render(); });
-  $('format-buttons').append(button);
-  formatButtons.set(format.id, button);
+for (const [groupId, groupLabel] of FORMAT_GROUPS) {
+  const formats = FORMATS.filter((format) => format.group === groupId);
+  const group = document.createElement('div');
+  group.className = 'format-group';
+  group.dataset.group = groupId;
+  group.style.setProperty('--n', formats.length);
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', groupLabel);
+  for (const format of formats) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'format-button';
+    button.dataset.format = format.id;
+    button.title = `应用 ${format.label} ${format.layout} · ${format.count} 个数字`;
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = `<span class="format-name">${shortFormats[format.id]}</span><span class="format-count" aria-hidden="true">${format.count}</span>`;
+    button.addEventListener('click', () => { model.applyFormat(format.id); render(); });
+    group.append(button);
+    formatButtons.set(format.id, button);
+  }
+  $('format-buttons').append(group);
 }
 
 for (const format of CARD_ORDER.map(getFormat)) {
@@ -91,8 +102,8 @@ function applyTheme() {
   viewer?.setPalette({
     axes: ['axis-x', 'axis-y', 'axis-z'].map(value), grid: value('viewer-grid'), gridMajor: value('viewer-grid-major'),
     link: value('viewer-link'), halo: value('viewer-bg'), labelBackground: value('viewer-label-bg'),
-    Robot: { point: value('frame-robot'), border: value('frame-robot-line'), text: value('frame-robot-text') },
-    Camera: { point: value('frame-camera'), border: value('frame-camera-line'), text: value('frame-camera-text') },
+    robot: { point: value('frame-robot'), border: value('frame-robot-line'), text: value('frame-robot-text') },
+    camera: { point: value('frame-camera'), border: value('frame-camera-line'), text: value('frame-camera-text') },
   });
 }
 
@@ -116,6 +127,7 @@ function render() {
   for (const direction of Object.keys(DIRECTIONS)) {
     $(`${direction}-button`).setAttribute('aria-pressed', String(direction === outputDirection));
   }
+  $('result-direction').textContent = directionLabel(outputDirection);
   $('result-formula').textContent = result ? DIRECTIONS[outputDirection].formula : '尚无结果';
   for (const [id, output] of outputCards) {
     output.card.classList.toggle('empty', !result);
@@ -210,16 +222,22 @@ $('frame-canvas').addEventListener('keydown', (event) => {
 $('theme-button').addEventListener('click', () => {
   const order = Object.keys(THEMES);
   themePreference = order[(order.indexOf(themePreference) + 1) % order.length];
-  try { localStorage.setItem(THEME_KEY, themePreference); } catch { /* Storage may be blocked. */ }
+  try {
+    if (themePreference === 'auto') localStorage.removeItem(THEME_KEY);
+    else localStorage.setItem(THEME_KEY, themePreference);
+  } catch { /* Storage may be blocked. */ }
   applyTheme();
 });
 darkQuery.addEventListener('change', () => { if (themePreference === 'auto') applyTheme(); });
 const guide = $('guide');
-$('guide-button').addEventListener('click', () => {
-  if (typeof guide.showModal === 'function') guide.showModal(); else guide.setAttribute('open', '');
+let backdropPress = false;
+$('guide-button').addEventListener('click', () => guide.showModal());
+$('guide-close').addEventListener('click', () => guide.close());
+guide.addEventListener('pointerdown', (event) => { backdropPress = event.target === guide; });
+guide.addEventListener('click', (event) => {
+  if (backdropPress && event.target === guide) guide.close();
+  backdropPress = false;
 });
-$('guide-close').addEventListener('click', () => { if (typeof guide.close === 'function') guide.close(); else guide.removeAttribute('open'); });
-guide.addEventListener('click', (event) => { if (event.target === guide) guide.close(); });
 
 applyTheme();
 render();
