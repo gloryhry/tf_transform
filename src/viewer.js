@@ -1,6 +1,11 @@
 import { identity, matrixToQuaternion, multiplyQuaternion, multiplyVector, normalizeQuaternion, quaternionToMatrix } from './math.js';
 
-const COLORS = ['#ff7c82', '#66d9a4', '#71b5ff'];
+export const DEFAULT_PALETTE = {
+  axes: ['#ff7c82', '#66d9a4', '#71b5ff'], grid: '#263c46', gridMajor: '#426069', link: '#94adb6',
+  halo: '#11242d', labelBackground: '#10232ded',
+  Robot: { point: '#89ebce', border: '#426b60', text: '#a3f1d9' },
+  Camera: { point: '#ffcb80', border: '#6c5a3e', text: '#ffcf91' },
+};
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 const unit = (v) => { const length = Math.hypot(...v); return v.map((x) => x / length); };
@@ -36,6 +41,7 @@ export class FrameViewer {
     this.width = 1;
     this.height = 1;
     this.scene = null;
+    this.palette = DEFAULT_PALETTE;
     this.installControls();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(canvas);
@@ -56,6 +62,11 @@ export class FrameViewer {
   setScene(scene) {
     if (this.scene === scene) return;
     this.scene = scene;
+    this.requestRender();
+  }
+
+  setPalette(palette) {
+    this.palette = { ...DEFAULT_PALETTE, ...palette };
     this.requestRender();
   }
 
@@ -172,7 +183,8 @@ export class FrameViewer {
 
   render() {
     const ctx = this.ctx;
-    const { width, height } = this;
+    const { width, height, palette } = this;
+    const colors = palette.axes;
     ctx.clearRect(0, 0, width, height);
     if (!this.scene) return;
     const unitScale = Math.max(...this.scene.pose.translation.map(Math.abs)) || 1;
@@ -202,12 +214,12 @@ export class FrameViewer {
     ctx.save();
     for (let step = -8; step <= 8; step++) {
       const value = step / 3;
-      line(project([value, -8 / 3, -0.025]), project([value, 8 / 3, -0.025]), step === 0 ? '#426069' : '#263c46', step === 0 ? 1 : 0.65);
-      line(project([-8 / 3, value, -0.025]), project([8 / 3, value, -0.025]), step === 0 ? '#426069' : '#263c46', step === 0 ? 1 : 0.65);
+      line(project([value, -8 / 3, -0.025]), project([value, 8 / 3, -0.025]), step === 0 ? palette.gridMajor : palette.grid, step === 0 ? 1 : 0.65);
+      line(project([-8 / 3, value, -0.025]), project([8 / 3, value, -0.025]), step === 0 ? palette.gridMajor : palette.grid, step === 0 ? 1 : 0.65);
     }
     const sourcePoint = project([0, 0, 0]);
     const targetPoint = project(target);
-    if (length > 1e-12) line(sourcePoint, targetPoint, '#94adb6', 1.2, true);
+    if (length > 1e-12) line(sourcePoint, targetPoint, palette.link, 1.2, true);
     const frames = sceneFrames(this.scene).map((frame) => ({
       ...frame, position: frame.translation.map((value) => value / unitScale),
       size: axisLength * (frame.fixed ? 1 : 0.77),
@@ -226,21 +238,22 @@ export class FrameViewer {
     ctx.font = '600 12px ui-monospace, SFMono-Regular, Consolas, monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const segment of segments) {
-      arrow(segment.start, segment.end, COLORS[segment.axis], !segment.frame.fixed);
+      arrow(segment.start, segment.end, colors[segment.axis], !segment.frame.fixed);
       const dx = segment.end[0] - segment.start[0];
       const dy = segment.end[1] - segment.start[1];
       const distance = Math.max(1, Math.hypot(dx, dy));
       const x = segment.end[0] + dx / distance * 16;
       const y = segment.end[1] + dy / distance * 16;
       const label = `${'XYZ'[segment.axis]}${segment.frame.fixed ? '' : '′'}`;
-      ctx.strokeStyle = '#11242d'; ctx.lineWidth = 5; ctx.strokeText(label, x, y);
-      ctx.fillStyle = COLORS[segment.axis]; ctx.fillText(label, x, y);
+      ctx.strokeStyle = palette.halo; ctx.lineWidth = 5; ctx.strokeText(label, x, y);
+      ctx.fillStyle = colors[segment.axis]; ctx.fillText(label, x, y);
     }
     const labelBoxes = [];
     for (const frame of frames) {
       const point = project(frame.position);
+      const style = palette[frame.name] ?? DEFAULT_PALETTE.Robot;
       ctx.beginPath(); ctx.arc(point[0], point[1], frame.fixed ? 5 : 3, 0, 2 * Math.PI);
-      ctx.fillStyle = frame.name === 'Robot' ? '#89ebce' : '#ffcb80'; ctx.fill();
+      ctx.fillStyle = style.point; ctx.fill();
       const label = `${frame.name}${frame.fixed ? ' · 基准' : ''}`;
       ctx.font = '600 12px system-ui, sans-serif';
       const labelWidth = ctx.measureText(label).width + 22;
@@ -254,9 +267,9 @@ export class FrameViewer {
       const [x, y] = candidates.find(([x, y]) => !labelBoxes.some((box) =>
         x < box.x + box.width + 7 && x + labelWidth + 7 > box.x && y < box.y + 33 && y + 33 > box.y)) || candidates[0];
       labelBoxes.push({ x, y, width: labelWidth });
-      ctx.fillStyle = '#10232ded'; ctx.strokeStyle = frame.name === 'Robot' ? '#426b60' : '#6c5a3e'; ctx.lineWidth = 1;
+      ctx.fillStyle = palette.labelBackground; ctx.strokeStyle = style.border; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.roundRect(x, y, labelWidth, 26, 6); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = frame.name === 'Robot' ? '#a3f1d9' : '#ffcf91';
+      ctx.fillStyle = style.text;
       ctx.fillText(label, x + labelWidth / 2, y + 13);
     }
     ctx.restore();
@@ -265,8 +278,8 @@ export class FrameViewer {
     for (let axis = 0; axis < 3; axis++) {
       const direction = rotation.map((row) => row[axis]);
       const tip = [origin[0] + direction[0] * 26, origin[1] - direction[1] * 26];
-      line(origin, tip, COLORS[axis], 1.8);
-      ctx.font = '10px ui-monospace, monospace'; ctx.fillStyle = COLORS[axis];
+      line(origin, tip, colors[axis], 1.8);
+      ctx.font = '10px ui-monospace, monospace'; ctx.fillStyle = colors[axis];
       ctx.fillText('xyz'[axis], tip[0] + direction[0] * 7, tip[1] - direction[1] * 7);
     }
   }

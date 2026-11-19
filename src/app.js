@@ -8,16 +8,23 @@ const icon = (name) => `<svg class="icon" aria-hidden="true"><use href="#i-${nam
 const directionLabel = (direction) => `${DIRECTIONS[direction].source} → ${DIRECTIONS[direction].target}`;
 const shortFormats = {
   translation: 'Translation',
-  'quat-xyzw': 'Quat. XYZW',
-  'quat-wxyz': 'Quat. WXYZ',
+  'quat-xyzw': 'Quat XYZW', 'quat-wxyz': 'Quat WXYZ',
   rpy: 'RPY (ROS)', ypr: 'YPR',
   'mat3-row': '3×3 行主序', 'mat3-col': '3×3 列主序',
   'mat4-row': '4×4 行主序', 'mat4-col': '4×4 列主序',
   tum: 'TUM',
 };
+const CARD_ORDER = ['tum', 'translation', 'rpy', 'ypr', 'quat-xyzw', 'quat-wxyz', 'mat3-row', 'mat3-col', 'mat4-row', 'mat4-col'];
+const THEMES = { auto: ['auto', '跟随系统'], light: ['sun', '亮色'], dark: ['moon', '暗色'] };
+const THEME_KEY = 'tf-translate-theme';
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const outputCards = new Map();
+const formatButtons = new Map();
 let viewer;
 let toastTimer;
+let themePreference = 'auto';
+try { themePreference = localStorage.getItem(THEME_KEY) ?? 'auto'; } catch { /* Storage may be blocked. */ }
+if (!['auto', 'light', 'dark'].includes(themePreference)) themePreference = 'auto';
 
 for (const format of FORMATS) {
   const button = document.createElement('button');
@@ -26,10 +33,13 @@ for (const format of FORMATS) {
   button.dataset.format = format.id;
   button.title = `应用 ${format.label} ${format.layout} · ${format.count} 个数字`;
   button.setAttribute('aria-label', button.title);
-  button.textContent = shortFormats[format.id];
+  button.innerHTML = `<span class="format-name">${shortFormats[format.id]}</span><span class="format-count" aria-hidden="true">${format.count}</span>`;
   button.addEventListener('click', () => { model.applyFormat(format.id); render(); });
   $('format-buttons').append(button);
+  formatButtons.set(format.id, button);
+}
 
+for (const format of CARD_ORDER.map(getFormat)) {
   const card = document.createElement('article');
   card.className = `result-card ${format.group}`;
   card.dataset.format = format.id;
@@ -68,6 +78,24 @@ catch (error) {
   document.querySelectorAll('[data-view]').forEach((button) => { button.disabled = true; });
 }
 
+function applyTheme() {
+  const root = document.documentElement;
+  root.dataset.theme = themePreference === 'auto' ? (darkQuery.matches ? 'dark' : 'light') : themePreference;
+  const [iconName, label] = THEMES[themePreference];
+  $('theme-button').innerHTML = icon(iconName);
+  $('theme-button').title = `主题：${label}（点击切换）`;
+  $('theme-button').setAttribute('aria-label', $('theme-button').title);
+  const css = getComputedStyle(root);
+  const value = (name) => css.getPropertyValue(`--${name}`).trim();
+  document.querySelector('meta[name="theme-color"]').content = value('bg');
+  viewer?.setPalette({
+    axes: ['axis-x', 'axis-y', 'axis-z'].map(value), grid: value('viewer-grid'), gridMajor: value('viewer-grid-major'),
+    link: value('viewer-link'), halo: value('viewer-bg'), labelBackground: value('viewer-label-bg'),
+    Robot: { point: value('frame-robot'), border: value('frame-robot-line'), text: value('frame-robot-text') },
+    Camera: { point: value('frame-camera'), border: value('frame-camera-line'), text: value('frame-camera-text') },
+  });
+}
+
 function renderDraft() {
   const { draft, draftError } = model;
   const count = extractNumbers(draft).length;
@@ -78,6 +106,7 @@ function renderDraft() {
   $('input-values').setAttribute('aria-invalid', String(Boolean(draftError)));
   $('input-message').textContent = draftError?.message ?? '';
   $('input-status').hidden = !draftError;
+  for (const format of FORMATS) formatButtons.get(format.id).classList.toggle('match', count > 0 && count === format.count);
 }
 
 function render() {
@@ -87,7 +116,6 @@ function render() {
   for (const direction of Object.keys(DIRECTIONS)) {
     $(`${direction}-button`).setAttribute('aria-pressed', String(direction === outputDirection));
   }
-  $('result-direction').textContent = directionLabel(outputDirection);
   $('result-formula').textContent = result ? DIRECTIONS[outputDirection].formula : '尚无结果';
   for (const [id, output] of outputCards) {
     output.card.classList.toggle('empty', !result);
@@ -104,7 +132,9 @@ function render() {
 
 function renderScene() {
   const { scene, referenceFrame } = model;
-  $('reference-frame').value = referenceFrame;
+  for (const button of document.querySelectorAll('[data-reference]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.reference === referenceFrame));
+  }
   const translation = scene?.pose.translation.map((value) => formatFloat(value, 6)).join(', ');
   $('translation-caption').textContent = scene ? `${scene.target} 原点在 ${scene.source} 中的位置` : '相对平移';
   $('translation-reading').textContent = translation ?? '—';
@@ -147,7 +177,9 @@ async function copyOutput(formatId, button) {
 
 $('input-values').addEventListener('input', (event) => { model.setDraft(event.target.value); renderDraft(); });
 $('precision').addEventListener('change', (event) => { model.precision = Number(event.target.value); render(); });
-$('reference-frame').addEventListener('change', (event) => { model.selectReferenceFrame(event.target.value); renderScene(); });
+document.querySelectorAll('[data-reference]').forEach((button) => {
+  button.addEventListener('click', () => { model.selectReferenceFrame(button.dataset.reference); renderScene(); });
+});
 $('identity-button').addEventListener('click', () => { model.resetIdentity(); render(); });
 $('clear-result-button').addEventListener('click', () => {
   model.clearResult();
@@ -175,5 +207,19 @@ $('frame-canvas').addEventListener('keydown', (event) => {
   if (event.key.startsWith('Arrow')) activateView(null);
   if (event.key.toLowerCase() === 'r') activateView('isometric');
 });
+$('theme-button').addEventListener('click', () => {
+  const order = Object.keys(THEMES);
+  themePreference = order[(order.indexOf(themePreference) + 1) % order.length];
+  try { localStorage.setItem(THEME_KEY, themePreference); } catch { /* Storage may be blocked. */ }
+  applyTheme();
+});
+darkQuery.addEventListener('change', () => { if (themePreference === 'auto') applyTheme(); });
+const guide = $('guide');
+$('guide-button').addEventListener('click', () => {
+  if (typeof guide.showModal === 'function') guide.showModal(); else guide.setAttribute('open', '');
+});
+$('guide-close').addEventListener('click', () => { if (typeof guide.close === 'function') guide.close(); else guide.removeAttribute('open'); });
+guide.addEventListener('click', (event) => { if (event.target === guide) guide.close(); });
 
+applyTheme();
 render();
